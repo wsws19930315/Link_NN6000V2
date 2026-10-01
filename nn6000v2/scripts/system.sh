@@ -111,22 +111,22 @@ boot() {
     fi
 
     crontab /etc/crontabs/root
+
+    # 保持 LAN IPv6 有状态 DHCPv6-[如不想持久化删除此段]
+    if [ "$(uci -q get dhcp.lan.ra)" != "server" ] || \
+       [ "$(uci -q get dhcp.lan.dhcpv6)" != "server" ] || \
+       [ "$(uci -q get dhcp.lan.ra_flags)" = "none" ]; then
+        uci set dhcp.lan.dhcpv6='server'
+        uci set dhcp.lan.ra='server'
+        uci -q delete dhcp.lan.ra_flags
+        uci add_list dhcp.lan.ra_flags='managed-config'
+        uci add_list dhcp.lan.ra_flags='other-config'
+        uci commit dhcp
+        /etc/init.d/odhcpd restart
+    fi
 }
 EOF
     chmod +x "$sh_dir/custom_task"
-}
-
-apply_passwall_tweaks() {
-    local chnlist_path="$BUILD_DIR/feeds/passwall/luci-app-passwall/root/usr/share/passwall/rules/chnlist"
-    if [ -f "$chnlist_path" ]; then
-        >"$chnlist_path"
-    fi
-
-    local xray_util_path="$BUILD_DIR/feeds/passwall/luci-app-passwall/luasrc/passwall/util_xray.lua"
-    if [ -f "$xray_util_path" ]; then
-        sed -i 's/maxRTT = "1s"/maxRTT = "2s"/g' "$xray_util_path"
-        sed -i 's/sampling = 3/sampling = 5/g' "$xray_util_path"
-    fi
 }
 
 update_nss_pbuf_performance() {
